@@ -1,28 +1,20 @@
 const config = {
-    // Server configuration
-    PORT: process.env.PORT || 3000,
-    NODE_ENV: process.env.NODE_ENV || 'development',
+    // ... (previous config remains)
+
+    // JWT Configuration
+    JWT_SECRET: process.env.JWT_SECRET || 'your-secure-secret-key',
+    JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
     
-    // Security
-    CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:5173',
-    
-    // Logging
-    LOG_LEVEL: process.env.LOG_LEVEL || 'info',
-    
-    // API configuration
-    API_PREFIX: process.env.API_PREFIX || '/api/v1',
-    
-    // Other configurations can be added here
-    MAX_REQUEST_SIZE: process.env.MAX_REQUEST_SIZE || '50mb'
+    // Command access configuration
+    ALLOWED_COMMAND_ROLES: ['admin', 'operator']
 };
 
-// Validate required configurations
 const validateConfig = () => {
-    // Add validation for required environment variables here
-    // Example: if (!process.env.REQUIRED_VAR) throw new Error('REQUIRED_VAR is required');
+    if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+        throw new Error('JWT_SECRET must be set in production environment');
+    }
 };
 
-// Run validation
 validateConfig();
 
 module.exports = config;

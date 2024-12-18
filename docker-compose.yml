@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - object-finder-net
+    environment:
+      - VITE_API_URL=http://localhost:3000/api/v1
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - yolov8
+      - nerf
+    networks:
+      - object-finder-net
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - YOLO_ENDPOINT=http://yolov8:8000/predict
+      - NERF_ENDPOINT=http://nerf:8001/generate
+      - LOG_LEVEL=debug
+    volumes:
+      - ./backend/logs:/usr/src/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  yolov8:
+    image: your_yolov8_image:latest  # Replace with actual YOLOv8 service image
+    networks:
+      - object-finder-net
+    environment:
+      - MODEL_PATH=/models/yolov8n.pt
+      - CONFIDENCE_THRESHOLD=0.5
+    volumes:
+      - yolo-models:/models
+    # Uncomment and modify when actual YOLOv8 service is ready
+    # ports:
+    #   - "8000:8000"
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+    #   interval: 30s
+    #   timeout: 3s
+    #   retries: 3
+
+  nerf:
+    image: your_nerf_image:latest  # Replace with actual NeRF service image
+    networks:
+      - object-finder-net
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - MAX_FRAMES=100
+      - RESOLUTION=256
+    volumes:
+      - nerf-data:/data
+    # Uncomment and modify when actual NeRF service is ready
+    # ports:
+    #   - "8001:8001"
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+    #   interval: 30s
+    #   timeout: 3s
+    #   retries: 3
+
+networks:
+  object-finder-net:
+    driver: bridge
+
+volumes:
+  yolo-models:
+    driver: local
+  nerf-data:
+    driver: local

@@ -1,49 +1,53 @@
 const express = require('express');
 const morgan = require('morgan');
-const winston = require('winston');
-
-// Configure logger
-const logger = winston.createLogger({
-    level: 'info',
-    format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.json()
-    ),
-    transports: [
-        new winston.transports.Console()
-    ]
-});
+const config = require('./utils/config');
+const logger = require('./utils/logger');
 
 const app = express();
 
 // Middleware
-app.use(morgan('dev'));
-app.use(express.json());
+app.use(morgan('dev', { stream: logger.stream }));
+app.use(express.json({ limit: config.MAX_REQUEST_SIZE }));
+app.use(express.urlencoded({ extended: true, limit: config.MAX_REQUEST_SIZE }));
 
 // Basic health check route
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok' });
+    logger.debug('Health check requested');
+    res.json({ 
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        environment: config.NODE_ENV
+    });
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
     logger.error('Unhandled error:', { 
         error: err.message,
-        stack: err.stack
+        stack: err.stack,
+        path: req.path,
+        method: req.method,
+        ip: req.ip
     });
 
     res.status(500).json({
         error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? err.message : undefined
+        message: config.NODE_ENV === 'development' ? err.message : undefined
     });
 });
 
 // 404 handler
 app.use((req, res) => {
+    logger.warn('Route not found', {
+        path: req.path,
+        method: req.method,
+        ip: req.ip
+    });
+    
     res.status(404).json({
         error: 'Not found',
-        message: `Route ${req.method} ${req.url} not found`
+        message: `Route ${req.method} ${req.path} not found`
     });
 });
 
-module.exports = { app, logger };
+module.exports = app;

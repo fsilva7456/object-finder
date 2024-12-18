@@ -3,12 +3,24 @@ const morgan = require('morgan');
 const config = require('./utils/config');
 const logger = require('./utils/logger');
 
+// Import routes
+const commandRouter = require('./routes/command');
+const telemetryRouter = require('./routes/telemetry');
+const detectionRouter = require('./routes/detection');
+const mapRouter = require('./routes/map');
+
 const app = express();
 
 // Middleware
 app.use(morgan('dev', { stream: logger.stream }));
 app.use(express.json({ limit: config.MAX_REQUEST_SIZE }));
 app.use(express.urlencoded({ extended: true, limit: config.MAX_REQUEST_SIZE }));
+
+// Routes
+app.use(`${config.API_PREFIX}/command`, commandRouter);
+app.use(`${config.API_PREFIX}/telemetry`, telemetryRouter);
+app.use(`${config.API_PREFIX}/detection`, detectionRouter);
+app.use(`${config.API_PREFIX}/map`, mapRouter);
 
 // Basic health check route
 app.get('/health', (req, res) => {

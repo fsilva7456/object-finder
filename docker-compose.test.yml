@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  backend:
+    image: object-finder-backend:test
+    environment:
+      - NODE_ENV=test
+      - PORT=3000
+      - YOLO_ENDPOINT=http://yolov8:8000/predict
+      - NERF_ENDPOINT=http://nerf:8001/generate
+    networks:
+      - object-finder-net
+
+  # Mock services for testing
+  yolov8:
+    image: alpine
+    command: sh -c "while true; do sleep 1; done"
+    networks:
+      - object-finder-net
+
+  nerf:
+    image: alpine
+    command: sh -c "while true; do sleep 1; done"
+    networks:
+      - object-finder-net
+
+networks:
+  object-finder-net:
+    external: true

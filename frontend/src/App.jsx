@@ -1,11 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import apiService from './services/api';
+import { useDroneData } from './hooks/useDroneData';
 import DroneControls from './components/DroneControls';
 import LiveFeed from './components/LiveFeed';
 import MapView from './components/MapView';
 
 function App() {
-    // ... (previous state and functions remain the same)
+    const [systemHealth, setSystemHealth] = useState(null);
+    const { telemetry, error: wsError, isConnected } = useDroneData();
+
+    useEffect(() => {
+        checkSystemHealth();
+    }, []);
+
+    const checkSystemHealth = async () => {
+        try {
+            const health = await apiService.fetchSystemHealth();
+            setSystemHealth(health);
+        } catch (error) {
+            console.error('Health check failed:', error);
+            setSystemHealth({ status: 'error', error: error.message });
+        }
+    };
 
     return (
         <div className="App">
@@ -14,9 +30,16 @@ function App() {
                 
                 {/* System Health Status */}
                 <div className="system-status">
-                    <p>System Status: 
+                    <p>
+                        System Status: 
                         <span style={{ color: systemHealth?.status === 'ok' ? 'green' : 'red' }}>
                             {systemHealth?.status || 'Checking...'}
+                        </span>
+                    </p>
+                    <p>
+                        WebSocket: 
+                        <span style={{ color: isConnected ? 'green' : 'red' }}>
+                            {isConnected ? 'Connected' : 'Disconnected'}
                         </span>
                     </p>
                 </div>
@@ -39,29 +62,29 @@ function App() {
                         <section className="controls-section">
                             <DroneControls />
 
-                            {/* Telemetry Section */}
+                            {/* Live Telemetry Section */}
                             <div className="telemetry-section">
-                                <h2>Telemetry</h2>
-                                <button 
-                                    onClick={fetchTelemetryData}
-                                    disabled={loading}
-                                >
-                                    {loading ? 'Fetching...' : 'Get Telemetry'}
-                                </button>
-
-                                {error && (
+                                <h2>Live Telemetry</h2>
+                                
+                                {wsError && (
                                     <div className="error-message">
-                                        Error: {error}
+                                        Error: {wsError}
                                     </div>
                                 )}
 
-                                {telemetry && !error && (
+                                {telemetry && (
                                     <div className="telemetry-data">
                                         <pre>
                                             {JSON.stringify(telemetry, null, 2)}
                                         </pre>
                                     </div>
                                 )}
+
+                                <div className="telemetry-status">
+                                    Last Update: {telemetry?.timestamp ? 
+                                        new Date(telemetry.timestamp).toLocaleTimeString() : 
+                                        'Waiting...'}
+                                </div>
                             </div>
                         </section>
                     </div>
